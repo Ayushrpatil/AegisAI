@@ -1,0 +1,241 @@
+{
+  "schemaVersion": "1.0",
+  "scanner": "Slither adapter",
+  "sourceName": "etherstore.sol",
+  "generatedAt": "2026-07-27T14:43:03.514Z",
+  "findings": [
+    {
+      "ruleId": "SLITHER-REENTRANCY-ETH",
+      "title": "reentrancy-eth",
+      "severity": "high",
+      "confidence": "medium",
+      "explanation": "Reentrancy in EtherStore.withdrawFunds(uint256) (Contracts/dataset/reentrancy/etherstore.sol#20-30):\n\tExternal calls:\n\t- require(bool)(msg.sender.call.value(_weiToWithdraw)()) (Contracts/dataset/reentrancy/etherstore.sol#27)\n\tState variables written after the call(s):\n\t- balances[msg.sender] -= _weiToWithdraw (Contracts/dataset/reentrancy/etherstore.sol#28)\n\tEtherStore.balances (Contracts/dataset/reentrancy/etherstore.sol#14) can be used in cross function reentrancies:\n\t- EtherStore.balances (Contracts/dataset/reentrancy/etherstore.sol#14)\n\t- EtherStore.depositFunds() (Contracts/dataset/reentrancy/etherstore.sol#16-18)\n\t- EtherStore.withdrawFunds(uint256) (Contracts/dataset/reentrancy/etherstore.sol#20-30)\n\t- lastWithdrawTime[msg.sender] = now (Contracts/dataset/reentrancy/etherstore.sol#29)\n\tEtherStore.lastWithdrawTime (Contracts/dataset/reentrancy/etherstore.sol#13) can be used in cross function reentrancies:\n\t- EtherStore.lastWithdrawTime (Contracts/dataset/reentrancy/etherstore.sol#13)\n\t- EtherStore.withdrawFunds(uint256) (Contracts/dataset/reentrancy/etherstore.sol#20-30)",
+      "evidence": [
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 20
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 21
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 22
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 23
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 24
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 25
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 26
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 27
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 28
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 29
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 30
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 27
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 28
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 29
+        }
+      ],
+      "provenance": "slither"
+    },
+    {
+      "ruleId": "SLITHER-TIMESTAMP",
+      "title": "timestamp",
+      "severity": "low",
+      "confidence": "medium",
+      "explanation": "EtherStore.withdrawFunds(uint256) (Contracts/dataset/reentrancy/etherstore.sol#20-30) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool)(now >= lastWithdrawTime[msg.sender] + 604800) (Contracts/dataset/reentrancy/etherstore.sol#25)",
+      "evidence": [
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 20
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 21
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 22
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 23
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 24
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 25
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 26
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 27
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 28
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 29
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 30
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 25
+        }
+      ],
+      "provenance": "slither"
+    },
+    {
+      "ruleId": "SLITHER-SOLC-VERSION",
+      "title": "solc-version",
+      "severity": "informational",
+      "confidence": "high",
+      "explanation": "Version constraint ^0.4.10 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- DirtyBytesArrayToStorage\n\t- KeccakCaching\n\t- EmptyByteArrayCopy\n\t- DynamicArrayCleanup\n\t- ImplicitConstructorCallvalueCheck\n\t- TupleAssignmentMultiStackSlotComponents\n\t- MemoryArrayCreationOverflow\n\t- privateCanBeOverridden\n\t- SignedArrayStorageCopy\n\t- UninitializedFunctionPointerInConstructor_0.4.x\n\t- IncorrectEventSignatureInLibraries_0.4.x\n\t- ExpExponentCleanup\n\t- NestedArrayFunctionCallDecoder\n\t- ZeroFunctionSelector\n\t- DelegateCallReturnValue\n\t- ECRecoverMalformedInput\n\t- SkipEmptyStringLiteral\n\t- ConstantOptimizerSubtraction.\nIt is used by:\n\t- ^0.4.10 (Contracts/dataset/reentrancy/etherstore.sol#8)",
+      "evidence": [
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 8
+        }
+      ],
+      "provenance": "slither"
+    },
+    {
+      "ruleId": "SLITHER-SOLC-VERSION",
+      "title": "solc-version",
+      "severity": "informational",
+      "confidence": "high",
+      "explanation": "solc-0.4.26 is an outdated solc version. Use a more recent version (at least 0.8.0), if possible.",
+      "evidence": [],
+      "provenance": "slither"
+    },
+    {
+      "ruleId": "SLITHER-LOW-LEVEL-CALLS",
+      "title": "low-level-calls",
+      "severity": "informational",
+      "confidence": "high",
+      "explanation": "Low level call in EtherStore.withdrawFunds(uint256) (Contracts/dataset/reentrancy/etherstore.sol#20-30):\n\t- require(bool)(msg.sender.call.value(_weiToWithdraw)()) (Contracts/dataset/reentrancy/etherstore.sol#27)",
+      "evidence": [
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 20
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 21
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 22
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 23
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 24
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 25
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 26
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 27
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 28
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 29
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 30
+        },
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 27
+        }
+      ],
+      "provenance": "slither"
+    },
+    {
+      "ruleId": "SLITHER-NAMING-CONVENTION",
+      "title": "naming-convention",
+      "severity": "informational",
+      "confidence": "high",
+      "explanation": "Parameter EtherStore.withdrawFunds(uint256)._weiToWithdraw (Contracts/dataset/reentrancy/etherstore.sol#20) is not in mixedCase",
+      "evidence": [
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 20
+        }
+      ],
+      "provenance": "slither"
+    },
+    {
+      "ruleId": "SLITHER-CONSTABLE-STATES",
+      "title": "constable-states",
+      "severity": "optimization",
+      "confidence": "high",
+      "explanation": "EtherStore.withdrawalLimit (Contracts/dataset/reentrancy/etherstore.sol#12) should be constant",
+      "evidence": [
+        {
+          "file": "Contracts/dataset/reentrancy/etherstore.sol",
+          "number": 12
+        }
+      ],
+      "provenance": "slither"
+    }
+  ]
+}

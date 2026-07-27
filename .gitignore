@@ -1,0 +1,29 @@
+# Local document-generation dependencies and review output
+.docx_deps/
+.pptx_deps/
+rendered/
+ppt_preview/
+ppt_update_preview/
+outputs/
+
+# Codex/local workspace state
+.agents/
+.cache/
+
+# Microsoft Office temporary lock files
+~$*
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+
+# Web application output
+node_modules/
+dist/
+.vercel/
+.env
+*.log
