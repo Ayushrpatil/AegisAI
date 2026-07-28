@@ -6,17 +6,32 @@ const app = document.querySelector("#app");
 app.innerHTML = `
   <header class="topbar">
     <a class="brand" href="#"><span class="brand-mark">A</span><span>AegisAI</span></a>
-    <span class="prototype-pill">Deterministic prototype</span>
+    <nav class="topnav" aria-label="Primary navigation">
+      <a href="#scanner">Scanner</a>
+      <a href="#findings">Findings</a>
+      <a href="#method">Method</a>
+    </nav>
+    <span class="prototype-pill"><i></i> Local analysis ready</span>
   </header>
   <main>
     <section class="hero">
-      <div><p class="eyebrow">Explainable smart-contract security</p><h1>Find the weakness.<br><em>Understand the fix.</em></h1></div>
-      <p class="hero-copy">Scan Solidity for eleven high-value vulnerability patterns. Every result includes source evidence, an attack path, and constrained remediation guidance.</p>
+      <div class="hero-title">
+        <p class="eyebrow">Explainable smart-contract security</p>
+        <h1>Find the weakness.<br><em>Understand the fix.</em></h1>
+      </div>
+      <div class="hero-aside">
+        <p class="hero-copy">Scan Solidity for eleven high-value vulnerability patterns. Every result includes source evidence, an attack path, and constrained remediation guidance.</p>
+        <div class="hero-proof" aria-label="Scanner capabilities">
+          <div><strong>11</strong><span>focused detectors</span></div>
+          <div><strong>0.4–0.8</strong><span>Solidity support</span></div>
+          <div><strong>98.5%</strong><span>dataset recall</span></div>
+        </div>
+      </div>
     </section>
-    <section class="scanner-shell">
+    <section class="scanner-shell" id="scanner">
       <div class="editor-panel">
         <div class="panel-heading">
-          <div><p class="eyebrow">Input</p><h2>Solidity contract</h2></div>
+          <div class="panel-title"><span class="step-number">01</span><div><p class="eyebrow">Input</p><h2>Solidity contract</h2></div></div>
           <div class="sample-actions">
             <label class="upload-button" for="source-file">Upload .sol files</label>
             <input id="source-file" class="sr-only" type="file" multiple accept=".sol,.txt,text/plain" />
@@ -24,6 +39,7 @@ app.innerHTML = `
             <button class="text-button" id="load-fixed">Fixed sample</button>
           </div>
         </div>
+        <div class="editor-chrome"><span><i></i> Source workspace</span><span>Local only</span></div>
         <label class="sr-only" for="source">Solidity source code</label>
         <textarea id="source" spellcheck="false"></textarea>
         <div class="editor-footer">
@@ -32,9 +48,12 @@ app.innerHTML = `
         </div>
       </div>
       <aside class="summary-panel" aria-live="polite">
-        <div><p class="eyebrow">Scan status</p><h2 id="status-title">Ready to analyze</h2><p id="status-copy">Upload or paste one Solidity source file.</p></div>
+        <div class="summary-heading"><span class="step-number">02</span><div><p class="eyebrow">Scan status</p><h2 id="status-title">Ready to analyze</h2><p id="status-copy">Upload or paste one Solidity source file.</p></div></div>
         <div class="engine-status"><span>Analysis engine</span><strong id="engine-name">Waiting</strong></div>
-        <div class="score-ring" id="score-ring"><strong id="score">—</strong><span>risk score</span></div>
+        <div class="score-wrap">
+          <div class="score-ring" id="score-ring"><strong id="score">—</strong><span>risk score</span></div>
+          <p>Prioritized from deterministic evidence, not probabilistic guesses.</p>
+        </div>
         <dl class="summary-grid">
           <div><dt>High</dt><dd id="high-count">—</dd></div>
           <div><dt>Medium</dt><dd id="medium-count">—</dd></div>
@@ -46,17 +65,17 @@ app.innerHTML = `
         </div>
       </aside>
     </section>
-    <section class="results-section">
+    <section class="results-section" id="findings">
       <div class="results-heading">
-        <div><p class="eyebrow">Evidence-linked report</p><h2>Security findings</h2></div>
+        <div><p class="eyebrow">03 · Evidence-linked report</p><h2>Security findings</h2></div>
         <p>Guidance explains deterministic findings; it does not prove safety.</p>
       </div>
       <div id="results" class="results-list">
         <div class="empty-state"><span>01</span><h3>No scan run yet</h3><p>Your prioritized findings will appear here.</p></div>
       </div>
     </section>
-    <section class="trust-section">
-      <p class="eyebrow">Trust model</p>
+    <section class="trust-section" id="method">
+      <div class="section-kicker"><p class="eyebrow">How AegisAI reasons</p><span>Transparent by design</span></div>
       <div class="trust-grid">
         <article><span>01</span><h3>Deterministic detection</h3><p>Rules own the security signal and always cite the triggering source lines.</p></article>
         <article><span>02</span><h3>Constrained explanation</h3><p>Reviewed templates translate evidence into plain-language attack paths and fixes.</p></article>

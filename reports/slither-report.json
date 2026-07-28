@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "scanner": "Slither adapter",
   "sourceName": "etherstore.sol",
-  "generatedAt": "2026-07-27T14:43:03.514Z",
+  "generatedAt": "2026-07-27T20:30:48.687Z",
   "findings": [
     {
       "ruleId": "SLITHER-REENTRANCY-ETH",

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0",
+  "scanner": "AegisAI deterministic prototype",
+  "scannedAt": "2026-07-27T20:29:28.246Z",
+  "durationMs": 1391.33,
+  "lineCount": 33,
+  "counts": {
+    "high": 4,
+    "medium": 1,
+    "low": 0
+  },
+  "findings": [
+    {
+      "ruleId": "AEGIS-ARITH-001",
+      "title": "Unchecked legacy arithmetic",
+      "severity": "high",
+      "confidence": 0.84,
+      "evidence": [
+        {
+          "number": 18,
+          "text": "balances[msg.sender] += msg.value;"
+        }
+      ],
+      "explanation": "Arithmetic in Solidity versions before 0.8 wraps on overflow or underflow unless the contract performs an explicit bound check or uses a checked-math library.",
+      "attackPath": "An attacker supplies a value that wraps the result around the integer range, creating an unexpectedly large balance, bypassing a limit, or reducing accounting to an invalid value.",
+      "remediation": "Use Solidity 0.8 or newer, or apply a reviewed checked-arithmetic library and validate operands before every legacy arithmetic operation.",
+      "fixedExample": "require(value <= type(uint256).max - balance, \"overflow\");\nbalance += value;"
+    },
+    {
+      "ruleId": "AEGIS-REENTRANCY-001",
+      "title": "External call before state update",
+      "severity": "high",
+      "confidence": 0.88,
+      "evidence": [
+        {
+          "number": 28,
+          "text": "require(msg.sender.call.value(_weiToWithdraw)());"
+        },
+        {
+          "number": 29,
+          "text": "balances[msg.sender] -= _weiToWithdraw;"
+        }
+      ],
+      "explanation": "The function transfers control to an external address before updating accounting state. The recipient may call back while the old balance is still available.",
+      "attackPath": "A malicious recipient re-enters during the external call and repeats the withdrawal before its balance is reduced.",
+      "remediation": "Apply checks-effects-interactions: validate first, update state second, and perform the external call last. A reentrancy guard can provide defense in depth.",
+      "fixedExample": "uint256 amount = balances[msg.sender];\nbalances[msg.sender] = 0;\n(bool success, ) = msg.sender.call{value: amount}(\"\");\nrequire(success, \"transfer failed\");"
+    },
+    {
+      "ruleId": "AEGIS-DOS-001",
+      "title": "Operation can be permanently blocked",
+      "severity": "high",
+      "confidence": 0.87,
+      "evidence": [
+        {
+          "number": 28,
+          "text": "require(msg.sender.call.value(_weiToWithdraw)());"
+        }
+      ],
+      "explanation": "Progress depends on an external recipient accepting a call. A recipient that always reverts can force the entire operation to fail indefinitely.",
+      "attackPath": "An attacker becomes a refund or payout recipient and deploys a fallback function that rejects payment. Every later action that must pay that address reverts.",
+      "remediation": "Do not push payments inside a required state transition. Record each recipient's credit and let recipients withdraw independently.",
+      "fixedExample": "pendingWithdrawals[recipient] += amount;\n// recipient later calls withdraw()"
+    },
+    {
+      "ruleId": "AEGIS-ARITH-001",
+      "title": "Unchecked legacy arithmetic",
+      "severity": "high",
+      "confidence": 0.84,
+      "evidence": [
+        {
+          "number": 29,
+          "text": "balances[msg.sender] -= _weiToWithdraw;"
+        }
+      ],
+      "explanation": "Arithmetic in Solidity versions before 0.8 wraps on overflow or underflow unless the contract performs an explicit bound check or uses a checked-math library.",
+      "attackPath": "An attacker supplies a value that wraps the result around the integer range, creating an unexpectedly large balance, bypassing a limit, or reducing accounting to an invalid value.",
+      "remediation": "Use Solidity 0.8 or newer, or apply a reviewed checked-arithmetic library and validate operands before every legacy arithmetic operation.",
+      "fixedExample": "require(value <= type(uint256).max - balance, \"overflow\");\nbalance += value;"
+    },
+    {
+      "ruleId": "AEGIS-TIME-001",
+      "title": "Miner-influenced timestamp controls sensitive logic",
+      "severity": "medium",
+      "confidence": 0.86,
+      "evidence": [
+        {
+          "number": 26,
+          "text": "require(now >= lastWithdrawTime[msg.sender] + 1 weeks);"
+        }
+      ],
+      "explanation": "This sensitive state or outcome depends directly on the block timestamp. Validators have limited freedom to choose timestamps, so logic near a boundary or using timestamp-derived randomness can be influenced.",
+      "attackPath": "A validator chooses an allowed timestamp that moves execution across the winning, payout, or state-transition boundary and includes the transaction only when favorable.",
+      "remediation": "Avoid timestamp-derived randomness. For deadlines, tolerate timestamp drift and do not rely on exact equality or very short windows; use a VRF or commit-reveal scheme for outcomes.",
+      "fixedExample": "require(block.timestamp >= deadline, \"too early\");\n// Use a sufficiently large safety window; never derive randomness from time."
+    }
+  ],
+  "limitations": [
+    "Pattern-based analysis does not prove that a contract is safe.",
+    "Cross-file data flow, inheritance, assembly, and proxy behavior are not analyzed.",
+    "Explanation text is reviewed template guidance, not an independent AI security claim."
+  ],
+  "sourceName": "etherstore.sol",
+  "engine": "solc 0.4.26+commit.4563c3fc.Emscripten.clang + AegisAI rules",
+  "compiler": {
+    "available": true,
+    "version": "0.4.26+commit.4563c3fc.Emscripten.clang",
+    "requestedPragma": "^0.4.10",
+    "pragmaNormalized": false,
+    "compiled": true,
+    "diagnostics": []
+  }
+}
