@@ -13,6 +13,10 @@ showing:
 The current version is a local-first educational prototype. It does not upload
 source code, prove that a contract is safe, or replace a professional audit.
 
+## Live deployment
+
+Try AegisAI online: [aegisai-smart-contract-scanner.vercel.app](https://aegisai-smart-contract-scanner.vercel.app/)
+
 ## Working prototype
 
 The v0.1 scanner detects eleven patterns:
