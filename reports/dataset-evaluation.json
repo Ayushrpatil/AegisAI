@@ -1,12 +1,12 @@
-f{
+{
   "summary": {
-    "generatedAt": "2026-07-27T00:33:15.545Z",
+    "generatedAt": "2026-07-30T00:12:26.503Z",
     "totalFiles": 143,
     "supportedCategoryFiles": 131,
     "supportedCategoryDetected": 129,
     "supportedCategoryRecall": 0.9847,
     "unsupportedCategoryFiles": 12,
-    "unsupportedFilesWithFindings": 8,
+    "unsupportedFilesWithFindings": 9,
     "note": "Access-control coverage is intentionally limited to tx.origin and unprotected ownership initialization; category-level recall is not a claim of general access-control coverage."
   },
   "categories": [
@@ -238,10 +238,11 @@ f{
       "supportedCategory": false,
       "expectedRule": null,
       "detected": false,
-      "findingCount": 15,
+      "findingCount": 16,
       "findingRules": [
         "AEGIS-ARITH-001",
         "AEGIS-DOS-001",
+        "AEGIS-LIFECYCLE-001",
         "AEGIS-REENTRANCY-001",
         "AEGIS-ABI-001",
         "AEGIS-TIME-001",
@@ -259,10 +260,11 @@ f{
       "supportedCategory": false,
       "expectedRule": null,
       "detected": false,
-      "findingCount": 12,
+      "findingCount": 13,
       "findingRules": [
         "AEGIS-ARITH-001",
         "AEGIS-DOS-001",
+        "AEGIS-LIFECYCLE-001",
         "AEGIS-REENTRANCY-001",
         "AEGIS-ABI-001",
         "AEGIS-TIME-001"
@@ -294,8 +296,10 @@ f{
       "supportedCategory": false,
       "expectedRule": null,
       "detected": false,
-      "findingCount": 0,
-      "findingRules": [],
+      "findingCount": 1,
+      "findingRules": [
+        "AEGIS-DELEGATE-001"
+      ],
       "annotatedLines": [
         18
       ],
@@ -657,11 +661,12 @@ f{
       "supportedCategory": true,
       "expectedRule": "AEGIS-RANDOM-001",
       "detected": true,
-      "findingCount": 9,
+      "findingCount": 10,
       "findingRules": [
         "AEGIS-ARITH-001",
         "AEGIS-RANDOM-001",
-        "AEGIS-DOS-001"
+        "AEGIS-DOS-001",
+        "AEGIS-LIFECYCLE-001"
       ],
       "annotatedLines": [
         48,
@@ -959,11 +964,12 @@ f{
       "supportedCategory": true,
       "expectedRule": "AEGIS-STORAGE-001",
       "detected": true,
-      "findingCount": 5,
+      "findingCount": 6,
       "findingRules": [
         "AEGIS-RANDOM-001",
         "AEGIS-ARITH-001",
         "AEGIS-STORAGE-001",
+        "AEGIS-LIFECYCLE-001",
         "AEGIS-TIME-001"
       ],
       "annotatedLines": [

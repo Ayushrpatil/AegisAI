@@ -1,5 +1,5 @@
 import "./styles.css";
-import { scanSolidity } from "./scanner.js";
+import { RULES, scanSolidity } from "./scanner.js";
 import { fixedSample, vulnerableSample } from "./samples.js";
 
 const app = document.querySelector("#app");
@@ -8,6 +8,7 @@ app.innerHTML = `
     <a class="brand" href="#"><span class="brand-mark">A</span><span>AegisAI</span></a>
     <nav class="topnav" aria-label="Primary navigation">
       <a href="#scanner">Scanner</a>
+      <a href="#coverage">Coverage</a>
       <a href="#findings">Findings</a>
       <a href="#method">Method</a>
     </nav>
@@ -20,9 +21,9 @@ app.innerHTML = `
         <h1>Find the weakness.<br><em>Understand the fix.</em></h1>
       </div>
       <div class="hero-aside">
-        <p class="hero-copy">Scan Solidity for eleven high-value vulnerability patterns. Every result includes source evidence, an attack path, and constrained remediation guidance.</p>
+        <p class="hero-copy">Scan Solidity for ${RULES.length} high-value vulnerability patterns. Every result includes source evidence, an attack path, and constrained remediation guidance.</p>
         <div class="hero-proof" aria-label="Scanner capabilities">
-          <div><strong>11</strong><span>focused detectors</span></div>
+          <div><strong>${RULES.length}</strong><span>focused detectors</span></div>
           <div><strong>0.4–0.8</strong><span>Solidity support</span></div>
           <div><strong>98.5%</strong><span>dataset recall</span></div>
         </div>
@@ -65,9 +66,62 @@ app.innerHTML = `
         </div>
       </aside>
     </section>
+    <section class="coverage-section" id="coverage">
+      <div class="coverage-heading">
+        <div>
+          <p class="eyebrow">03 · Detector coverage</p>
+          <h2>Focused on failures that matter.</h2>
+        </div>
+        <div class="coverage-summary">
+          <strong>${RULES.length}</strong>
+          <p>Evidence-based rules across execution, authorization, cryptography, and state safety.</p>
+        </div>
+      </div>
+      <div class="detector-groups">
+        <article class="detector-group">
+          <p>Execution safety</p>
+          <h3>External control flow</h3>
+          <ul>
+            <li><span>Reentrancy</span><code>REENTRANCY</code></li>
+            <li><span>Unchecked calls</span><code>CALL</code></li>
+            <li class="new-rule"><span>User-controlled delegatecall</span><b>New</b></li>
+            <li><span>Denial of service</span><code>DOS</code></li>
+          </ul>
+        </article>
+        <article class="detector-group">
+          <p>Authorization</p>
+          <h3>Privilege & lifecycle</h3>
+          <ul>
+            <li><span>tx.origin authorization</span><code>AUTH</code></li>
+            <li><span>Ownership initialization</span><code>ACCESS</code></li>
+            <li class="new-rule"><span>Unprotected destruction</span><b>New</b></li>
+          </ul>
+        </article>
+        <article class="detector-group">
+          <p>Cryptographic use</p>
+          <h3>Inputs & commitments</h3>
+          <ul>
+            <li><span>Predictable randomness</span><code>RANDOM</code></li>
+            <li><span>Timestamp dependence</span><code>TIME</code></li>
+            <li class="new-rule"><span>Packed encoding collision</span><b>New</b></li>
+          </ul>
+        </article>
+        <article class="detector-group">
+          <p>State integrity</p>
+          <h3>Data & transaction safety</h3>
+          <ul>
+            <li><span>Legacy arithmetic</span><code>ARITH</code></li>
+            <li><span>Transaction ordering</span><code>FRONT</code></li>
+            <li><span>Short-address ABI</span><code>ABI</code></li>
+            <li><span>Storage references</span><code>STORAGE</code></li>
+          </ul>
+        </article>
+      </div>
+      <p class="coverage-note">A clean scan means these focused patterns were not detected. It is not proof of complete contract safety.</p>
+    </section>
     <section class="results-section" id="findings">
       <div class="results-heading">
-        <div><p class="eyebrow">03 · Evidence-linked report</p><h2>Security findings</h2></div>
+        <div><p class="eyebrow">04 · Evidence-linked report</p><h2>Security findings</h2></div>
         <p>Guidance explains deterministic findings; it does not prove safety.</p>
       </div>
       <div id="results" class="results-list">

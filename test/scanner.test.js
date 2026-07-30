@@ -273,3 +273,71 @@ test("detects an uninitialized legacy storage reference", () => {
   }`);
   assert.ok(report.findings.some((finding) => finding.ruleId === "AEGIS-STORAGE-001"));
 });
+
+test("detects publicly reachable contract destruction", () => {
+  const report = scanSolidity(`pragma solidity ^0.8.20;
+  contract Breakable {
+    function shutdown(address payable recipient) external {
+      selfdestruct(recipient);
+    }
+  }`);
+  assert.ok(report.findings.some((finding) => finding.ruleId === "AEGIS-LIFECYCLE-001"));
+});
+
+test("does not flag owner-protected contract destruction", () => {
+  const report = scanSolidity(`pragma solidity ^0.8.20;
+  contract Managed {
+    address owner;
+    modifier onlyOwner() { require(msg.sender == owner); _; }
+    function shutdown(address payable recipient) external onlyOwner {
+      selfdestruct(recipient);
+    }
+  }`);
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "AEGIS-LIFECYCLE-001"));
+});
+
+test("detects delegatecall to a caller-supplied address", () => {
+  const report = scanSolidity(`pragma solidity ^0.8.20;
+  contract Executor {
+    function execute(address target, bytes calldata data) external {
+      (bool ok, ) = target.delegatecall(data);
+      require(ok);
+    }
+  }`);
+  const item = report.findings.find((finding) => finding.ruleId === "AEGIS-DELEGATE-001");
+  assert.ok(item);
+  assert.match(item.explanation, /caller-supplied/);
+});
+
+test("does not flag an allowlisted delegatecall target", () => {
+  const report = scanSolidity(`pragma solidity ^0.8.20;
+  contract Executor {
+    mapping(address => bool) allowed;
+    function execute(address target, bytes calldata data) external {
+      require(allowed[target]);
+      (bool ok, ) = target.delegatecall(data);
+      require(ok);
+    }
+  }`);
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "AEGIS-DELEGATE-001"));
+});
+
+test("detects packed hashing of multiple dynamic inputs", () => {
+  const report = scanSolidity(`pragma solidity ^0.8.20;
+  contract Authorizer {
+    function digest(string calldata role, string calldata account) external pure returns (bytes32) {
+      return keccak256(abi.encodePacked(role, account));
+    }
+  }`);
+  assert.ok(report.findings.some((finding) => finding.ruleId === "AEGIS-HASH-001"));
+});
+
+test("does not flag unambiguous abi.encode hashing", () => {
+  const report = scanSolidity(`pragma solidity ^0.8.20;
+  contract Authorizer {
+    function digest(string calldata role, string calldata account) external pure returns (bytes32) {
+      return keccak256(abi.encode(role, account));
+    }
+  }`);
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "AEGIS-HASH-001"));
+});

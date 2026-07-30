@@ -1,12 +1,12 @@
 # AegisAI Dataset Evaluation
 
-Generated: 2026-07-27T00:33:15.545Z
+Generated: 2026-07-30T00:12:26.503Z
 
 - Total contracts: 143
 - Contracts in supported categories: 131
 - Supported-category detections: 129
 - Supported-category category-level recall: 98.5%
-- Unsupported-category files with findings: 8/12
+- Unsupported-category files with findings: 9/12
 
 > Access-control coverage is intentionally limited to tx.origin and unprotected ownership initialization; category-level recall is not a claim of general access-control coverage.
 

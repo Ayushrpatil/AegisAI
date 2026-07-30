@@ -9,7 +9,10 @@ export const RULES = Object.freeze([
   { id: "AEGIS-ARITH-001", title: "Unchecked legacy arithmetic", severity: "high", confidence: 0.84 },
   { id: "AEGIS-FRONT-001", title: "Transaction-order dependence", severity: "high", confidence: 0.82 },
   { id: "AEGIS-ABI-001", title: "Short-address ABI ambiguity", severity: "medium", confidence: 0.8 },
-  { id: "AEGIS-STORAGE-001", title: "Uninitialized storage reference", severity: "high", confidence: 0.95 }
+  { id: "AEGIS-STORAGE-001", title: "Uninitialized storage reference", severity: "high", confidence: 0.95 },
+  { id: "AEGIS-LIFECYCLE-001", title: "Unprotected contract destruction", severity: "high", confidence: 0.96 },
+  { id: "AEGIS-DELEGATE-001", title: "User-controlled delegatecall", severity: "high", confidence: 0.94 },
+  { id: "AEGIS-HASH-001", title: "Ambiguous packed encoding of dynamic inputs", severity: "medium", confidence: 0.9 }
 ]);
 
 function lineRecord(lines, index) {
@@ -384,6 +387,105 @@ function detectUninitializedStorage(lines, cleanLines) {
   });
 }
 
+function hasAccessControl(signature, body) {
+  return /\b(?:onlyOwner|onlyAdmin|onlyRole|authorized|auth)\b/i.test(signature) ||
+    /\brequire\s*\(\s*msg\.sender\s*==\s*(?:owner|admin|administrator)\b/i.test(body) ||
+    /\brequire\s*\([^;]*(?:hasRole|isOwner|isAdmin)\s*\(/i.test(body);
+}
+
+function detectUnprotectedDestruction(lines, cleanLines) {
+  const rule = RULES[11];
+  const findings = [];
+  for (const range of findFunctionRanges(cleanLines)) {
+    const bodyLines = cleanLines.slice(range.start, range.end + 1);
+    const body = bodyLines.join("\n");
+    const signature = bodyLines.join(" ").split("{")[0];
+    if (/\b(?:private|internal)\b/.test(signature)) continue;
+    if (!/\b(?:public|external)\b/.test(signature)) continue;
+    const callOffset = bodyLines.findIndex((line) => /\b(?:selfdestruct|suicide)\s*\(/.test(line));
+    if (callOffset < 0 || hasAccessControl(signature, body)) continue;
+    findings.push(finding(rule, [
+      lineRecord(lines, range.start),
+      ...(callOffset ? [lineRecord(lines, range.start + callOffset)] : [])
+    ], {
+      explanation: "A publicly reachable function can execute contract destruction without an owner or role check. Depending on the EVM revision, this can transfer the full balance and may remove code for contracts created in the same transaction.",
+      attackPath: "An arbitrary caller invokes the function, redirects or triggers the forced balance transfer, and permanently disrupts the protocol's expected lifecycle.",
+      remediation: "Remove contract destruction when possible. If lifecycle termination is essential, restrict it with explicit role-based access control, a delay, and a reviewed recipient.",
+      fixedExample: "function shutdown(address payable recipient) external onlyOwner {\n    selfdestruct(recipient);\n}"
+    }));
+  }
+  return findings;
+}
+
+function dynamicParameterNames(signature) {
+  const names = [];
+  const pattern = /\b(?:string|bytes(?!\d)|[A-Za-z_]\w*\s*\[\s*\])\s*(?:calldata|memory|storage)?\s+([A-Za-z_]\w*)/g;
+  for (const match of signature.matchAll(pattern)) names.push(match[1]);
+  return names;
+}
+
+function addressParameterNames(signature) {
+  return [...signature.matchAll(/\baddress(?:\s+payable)?\s+([A-Za-z_]\w*)/g)]
+    .map((match) => match[1]);
+}
+
+function detectUserControlledDelegatecall(lines, cleanLines) {
+  const rule = RULES[12];
+  const findings = [];
+  for (const range of findFunctionRanges(cleanLines)) {
+    const bodyLines = cleanLines.slice(range.start, range.end + 1);
+    const body = bodyLines.join("\n");
+    const signature = bodyLines.join(" ").split("{")[0];
+    if (!/\b(?:public|external)\b/.test(signature) || hasAccessControl(signature, body)) continue;
+    for (const parameter of addressParameterNames(signature)) {
+      const callOffset = bodyLines.findIndex((line) =>
+        new RegExp(`\\b${parameter}\\s*\\.\\s*delegatecall\\s*\\(`).test(line)
+      );
+      if (callOffset < 0) continue;
+      const validated =
+        new RegExp(`\\brequire\\s*\\([^;]*(?:${parameter}\\s*==|allowed\\s*\\[\\s*${parameter}\\s*\\]|trusted\\s*\\[\\s*${parameter}\\s*\\])`).test(body);
+      if (validated) continue;
+      findings.push(finding(rule, [
+        lineRecord(lines, range.start),
+        ...(callOffset ? [lineRecord(lines, range.start + callOffset)] : [])
+      ], {
+        explanation: `The public function delegates execution to the caller-supplied ${parameter} address. Delegatecall runs foreign code in this contract's storage and authority context.`,
+        attackPath: "An attacker supplies a malicious implementation that overwrites ownership or critical storage, transfers assets, or permanently corrupts the contract.",
+        remediation: "Delegate only to a fixed or governance-approved implementation. Validate the target against an allowlist and protect upgrade paths with strong access control and a delay.",
+        fixedExample: "require(approvedImplementations[target], \"untrusted implementation\");\n(bool ok, ) = target.delegatecall(data);\nrequire(ok, \"delegatecall failed\");"
+      }));
+      break;
+    }
+  }
+  return findings;
+}
+
+function detectPackedEncodingCollision(lines, cleanLines) {
+  const rule = RULES[13];
+  const findings = [];
+  for (const range of findFunctionRanges(cleanLines)) {
+    const bodyLines = cleanLines.slice(range.start, range.end + 1);
+    const signature = bodyLines.join(" ").split("{")[0];
+    const dynamicNames = dynamicParameterNames(signature);
+    if (dynamicNames.length < 2) continue;
+    const hashOffset = bodyLines.findIndex((line) =>
+      /\b(?:keccak256|sha3)\s*\(\s*abi\.encodePacked\s*\(/.test(line) &&
+      dynamicNames.filter((name) => new RegExp(`\\b${name}\\b`).test(line)).length >= 2
+    );
+    if (hashOffset < 0) continue;
+    findings.push(finding(rule, [
+      lineRecord(lines, range.start),
+      ...(hashOffset ? [lineRecord(lines, range.start + hashOffset)] : [])
+    ], {
+      explanation: "abi.encodePacked removes length boundaries between multiple dynamic values. Different input pairs can therefore produce the same byte sequence and the same hash.",
+      attackPath: "An attacker chooses alternate dynamic inputs whose packed concatenation matches an authorized message, commitment, or signature digest.",
+      remediation: "Use abi.encode for hashing multiple dynamic values, or include unambiguous length/type separators before hashing.",
+      fixedExample: "bytes32 digest = keccak256(abi.encode(firstValue, secondValue));"
+    }));
+  }
+  return findings;
+}
+
 export function scanSolidity(source) {
   const startedAt = performance.now();
   const lines = String(source || "").split(/\r?\n/);
@@ -399,7 +501,10 @@ export function scanSolidity(source) {
     ...detectLegacyArithmetic(lines, cleanLines, source),
     ...detectTransactionOrderDependence(lines, cleanLines),
     ...detectShortAddressRisk(lines, cleanLines),
-    ...detectUninitializedStorage(lines, cleanLines)
+    ...detectUninitializedStorage(lines, cleanLines),
+    ...detectUnprotectedDestruction(lines, cleanLines),
+    ...detectUserControlledDelegatecall(lines, cleanLines),
+    ...detectPackedEncodingCollision(lines, cleanLines)
   ].sort((a, b) => {
     const rank = { high: 3, medium: 2, low: 1 };
     return rank[b.severity] - rank[a.severity] || a.evidence[0].number - b.evidence[0].number;

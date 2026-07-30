@@ -19,7 +19,7 @@ Try AegisAI online: [aegisai-smart-contract-scanner.vercel.app](https://aegisai-
 
 ## Working prototype
 
-The v0.1 scanner detects eleven patterns:
+The v0.1 scanner detects fourteen patterns:
 
 1. Reentrancy risk caused by an external value call before a state update
 2. `tx.origin` authorization
@@ -33,6 +33,9 @@ The v0.1 scanner detects eleven patterns:
 9. Transaction-order dependence and front-running exposure
 10. Legacy short-address ABI ambiguity
 11. Uninitialized storage references
+12. Unprotected contract destruction
+13. User-controlled `delegatecall`
+14. Ambiguous `abi.encodePacked` hashing with multiple dynamic inputs
 
 The primary workflow accepts one or more real local `.sol` files (up to 1 MB
 each and 2 MB combined) or pasted Solidity source. The browser reads and scans
@@ -116,7 +119,7 @@ An external explanation endpoint can be enabled with
 finding and its evidence, instructs the service not to invent new findings, and
 retains the deterministic rule ID as provenance.
 
-The automated tests verify all eleven supported detectors, the corrected sample,
+The automated tests verify all fourteen supported detectors, the corrected sample,
 comment handling, and the presence of evidence and remediation fields.
 
 ## Dataset evaluation
@@ -171,7 +174,7 @@ separately and are not presented as proof of correctness.
 
 - Solidity syntax and compiler diagnostics come from `solc-js`.
 - Compiler success and security-rule success are separate: a contract can
-  compile correctly while containing a vulnerability outside the eleven supported
+  compile correctly while containing a vulnerability outside the fourteen supported
   detector classes.
 - Security findings come from explicit evidence rules, not from an unconstrained language model.
 - “AI-assisted” explanations are currently reviewed templates grounded in each
