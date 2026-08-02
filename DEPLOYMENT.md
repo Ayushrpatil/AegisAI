@@ -31,10 +31,18 @@ After deployment, verify:
 5. JSON and HTML reports download.
 6. `/api/scan` returns a compiler-backed report.
 
-## Optional explanation endpoint
+## Optional OpenAI explanation mode
 
-Set `AEGIS_EXPLANATION_ENDPOINT` only when deploying a compatible grounded
-explanation service. The scanner remains usable without it.
+Set the following server-side Vercel environment variables to enable AI mode:
+
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL` (defaults to `gpt-5.6-luna`)
+
+After adding or changing either variable, redeploy the project. The scanner
+remains usable without them and falls back to reviewed templates.
+
+`AEGIS_EXPLANATION_ENDPOINT` remains available for a compatible custom grounded
+explanation service.
 
 Do not expose provider secrets through `VITE_` variables because those values
 are bundled into browser code.
@@ -59,4 +67,3 @@ npm run scan:slither -- .\Contracts\dataset\reentrancy\etherstore.sol .\reports\
 - The public README states that the prototype is not an audit replacement.
 - The deployed UI is tested with at least one vulnerable and one corrected
   contract.
-

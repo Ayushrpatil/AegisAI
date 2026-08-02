@@ -10,8 +10,10 @@ showing:
 - a likely attack path, and
 - constrained remediation guidance.
 
-The current version is a local-first educational prototype. It does not upload
-source code, prove that a contract is safe, or replace a professional audit.
+The current version is a local-first educational prototype. Deterministic mode
+does not upload source code. Optional AI mode sends only normalized findings and
+their cited evidence to the configured model. Neither mode proves that a contract
+is safe or replaces a professional audit.
 
 ## Live deployment
 
@@ -111,13 +113,30 @@ npm run scan:slither -- .\Contracts\dataset\reentrancy\etherstore.sol .\reports\
 This produces normalized evidence including Slither's high-severity
 `reentrancy-eth` finding.
 
-### Optional grounded explanation service
+### Optional AI-assisted explanation mode
 
-`server/explanation-adapter.js` keeps reviewed rule templates as the default.
-An external explanation endpoint can be enabled with
-`AEGIS_EXPLANATION_ENDPOINT`. The adapter sends only an already-detected
-finding and its evidence, instructs the service not to invent new findings, and
-retains the deterministic rule ID as provenance.
+Deterministic rules always own the security finding. The AI layer can only
+rewrite the explanation, attack path, remediation, and caution for findings that
+already exist. It cannot add or remove vulnerabilities, change severity, or
+change evidence.
+
+Create a local `.env` file from `.env.example`:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Then set the server-only variables:
+
+```dotenv
+OPENAI_API_KEY=your_api_key
+OPENAI_MODEL=gpt-5.6-luna
+```
+
+Start the application with `npm run dev` and enable **AI-assisted explanations**
+in the scan panel. If the key or model is unavailable, the scan still completes
+using reviewed templates. Never use a `VITE_` prefix for the API key because
+Vite variables are exposed to the browser bundle.
 
 The automated tests verify all fourteen supported detectors, the corrected sample,
 comment handling, and the presence of evidence and remediation fields.
@@ -177,8 +196,9 @@ separately and are not presented as proof of correctness.
   compile correctly while containing a vulnerability outside the fourteen supported
   detector classes.
 - Security findings come from explicit evidence rules, not from an unconstrained language model.
-- “AI-assisted” explanations are currently reviewed templates grounded in each
-  rule and its source evidence.
+- AI-assisted explanations are optional, constrained to deterministic findings,
+  and visibly labeled with their model provenance. Reviewed templates remain the
+  safe fallback.
 - The prototype does not analyze inheritance, cross-file flows, inline assembly,
   proxies, every denial-of-service form, front-running, or every reentrancy form.
 - A clean report means only that the supported patterns were not found.

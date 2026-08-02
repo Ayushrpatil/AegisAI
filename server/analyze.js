@@ -4,6 +4,7 @@ import solc05 from "solc-0-5";
 import solc06 from "solc-0-6";
 import solc07 from "solc-0-7";
 import { scanSolidity } from "../src/scanner.js";
+import { explainFindingsWithOpenAI } from "./explanation-adapter.js";
 
 function selectCompiler(source) {
   const pragma = String(source || "").match(/pragma\s+solidity\s+([^;]+);/i)?.[1]?.trim() || null;
@@ -75,4 +76,62 @@ export function analyzeContract(source, filename = "Contract.sol") {
       diagnostics
     }
   };
+}
+
+export async function analyzeContractWithOptions(source, filename = "Contract.sol", options = {}) {
+  const report = analyzeContract(source, filename);
+  const aiRequested = options.aiMode === true;
+  if (!aiRequested || !report.findings.length) {
+    return {
+      ...report,
+      ai: {
+        requested: aiRequested,
+        configured: Boolean(options.apiKey || process.env.OPENAI_API_KEY),
+        used: false,
+        model: options.model || process.env.OPENAI_MODEL || "gpt-5.6-luna",
+        fallbackCount: 0
+      }
+    };
+  }
+
+  try {
+    const generated = await explainFindingsWithOpenAI(report.findings, options);
+    const findings = report.findings.map((finding, index) => ({
+      ...finding,
+      ...generated.explanations[index],
+      deterministicEvidence: true,
+      explanationMode: generated.explanations[index]?.mode || "reviewed-template"
+    }));
+    const used = findings.some((finding) => finding.explanationMode === "openai-grounded");
+    return {
+      ...report,
+      findings,
+      engine: used ? `${report.engine} + grounded OpenAI explanations` : report.engine,
+      ai: {
+        requested: true,
+        configured: generated.configured,
+        used,
+        model: generated.model,
+        fallbackCount: generated.fallbackCount,
+        error: generated.error || null
+      }
+    };
+  } catch (error) {
+    return {
+      ...report,
+      findings: report.findings.map((finding) => ({
+        ...finding,
+        deterministicEvidence: true,
+        explanationMode: "reviewed-template"
+      })),
+      ai: {
+        requested: true,
+        configured: Boolean(options.apiKey || process.env.OPENAI_API_KEY),
+        used: false,
+        model: options.model || process.env.OPENAI_MODEL || "gpt-5.6-luna",
+        fallbackCount: report.findings.length,
+        error: error.message
+      }
+    };
+  }
 }

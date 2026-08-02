@@ -1,5 +1,6 @@
+import "./scripts/load-env.mjs";
 import { createServer } from "node:http";
-import { analyzeContract } from "./server/analyze.js";
+import { analyzeContractWithOptions } from "./server/analyze.js";
 
 const port = Number(process.env.AEGIS_API_PORT || 3001);
 
@@ -18,11 +19,11 @@ createServer((request, response) => {
     body += chunk;
     if (body.length > 1_100_000) request.destroy();
   });
-  request.on("end", () => {
+  request.on("end", async () => {
     try {
-      const { source, filename } = JSON.parse(body);
+      const { source, filename, aiMode } = JSON.parse(body);
       if (typeof source !== "string" || !source.trim()) throw new Error("Solidity source is required.");
-      const report = analyzeContract(source, filename);
+      const report = await analyzeContractWithOptions(source, filename, { aiMode });
       response.writeHead(200, { "Content-Type": "application/json" });
       response.end(JSON.stringify(report));
     } catch (error) {
