@@ -78,3 +78,53 @@ test("accepts structured grounded OpenAI explanations without changing provenanc
   assert.equal(result.explanations[0].model, "test-model");
   assert.match(result.explanations[0].reasoningSummary, /cited call/);
 });
+
+test("batches large finding sets without losing grounded explanations", async () => {
+  const findings = Array.from({ length: 5 }, (_, index) => ({
+    ruleId: `AEGIS-BATCH-${index}`,
+    title: `Verified finding ${index}`,
+    severity: "medium",
+    confidence: 0.8,
+    explanation: `Verified explanation ${index}`,
+    attackPath: `Verified path ${index}`,
+    remediation: `Verified remediation ${index}`,
+    evidence: [{ number: index + 1, text: `unsafe${index}();` }]
+  }));
+  let requestCount = 0;
+  const fetchImpl = async (_url, request) => {
+    requestCount += 1;
+    const body = JSON.parse(request.body);
+    const payload = JSON.parse(body.input[1].content[0].text);
+    assert.ok(payload.findings.length <= 2);
+    return {
+      ok: true,
+      json: async () => ({
+        output: [{
+          content: [{
+            type: "output_text",
+            text: JSON.stringify({ explanations: payload.findings.map((finding) => ({
+              findingIndex: finding.findingIndex,
+              ruleId: finding.ruleId,
+              explanation: `Grounded ${finding.ruleId}`,
+              attackPath: "Grounded attack path",
+              remediation: "Grounded remediation",
+              reasoningSummary: "Grounded reasoning summary",
+              caution: "Human review is required."
+            })) })
+          }]
+        }]
+      })
+    };
+  };
+  const result = await explainFindingsWithOpenAI(findings, {
+    apiKey: "test-key",
+    model: "test-model",
+    batchSize: 2,
+    fetchImpl
+  });
+  assert.equal(requestCount, 3);
+  assert.equal(result.fallbackCount, 0);
+  assert.equal(result.error, null);
+  assert.equal(result.explanations.length, findings.length);
+  assert.ok(result.explanations.every((item) => item.mode === "openai-grounded"));
+});

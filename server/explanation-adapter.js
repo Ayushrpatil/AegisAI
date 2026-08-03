@@ -71,59 +71,81 @@ export async function explainFindingsWithOpenAI(findings, options = {}) {
     verifiedRemediation: finding.remediation
   }));
   const fetchImpl = options.fetchImpl || fetch;
-  const response = await fetchImpl("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model,
-      store: false,
-      reasoning: { effort: "low" },
-      max_output_tokens: 1800,
-      input: [
-        {
-          role: "system",
-          content: [{
-            type: "input_text",
-            text: [
-              "You are the constrained explanation layer for AegisAI, a defensive Solidity security scanner.",
-              "The supplied findings are already verified by deterministic rules. Do not add, remove, merge, or change findings, severity, confidence, rule IDs, or evidence.",
-              "For each finding, improve only the plain-language explanation, realistic attack path, actionable remediation, and a concise reasoning summary.",
-              "The reasoning summary must explain how the cited evidence supports the existing rule in two or three sentences. It must not reveal hidden chain-of-thought.",
-              "Do not claim that the contract is safe. Do not invent code, state, dependencies, or exploitability beyond the supplied evidence.",
-              "The caution must briefly identify any material uncertainty and state that human review is required."
-            ].join(" ")
-          }]
-        },
-        {
-          role: "user",
-          content: [{
-            type: "input_text",
-            text: JSON.stringify({ task: "Explain these verified findings", findings: evidencePayload })
-          }]
-        }
-      ],
-      text: {
-        verbosity: "low",
-        format: {
-          type: "json_schema",
-          name: "aegisai_grounded_explanations",
-          strict: true,
-          schema: explanationSchema()
-        }
-      }
-    }),
-    signal: AbortSignal.timeout(options.timeoutMs || 25000)
-  });
-  if (!response.ok) {
-    const details = await response.text().catch(() => "");
-    throw new Error(`OpenAI explanation request returned ${response.status}${details ? `: ${details.slice(0, 240)}` : ""}`);
+  const requestedBatchSize = Number(options.batchSize || 4);
+  const batchSize = Number.isFinite(requestedBatchSize)
+    ? Math.max(1, Math.min(6, Math.floor(requestedBatchSize)))
+    : 4;
+  const batches = [];
+  for (let index = 0; index < evidencePayload.length; index += batchSize) {
+    batches.push(evidencePayload.slice(index, index + batchSize));
   }
-  const raw = await response.json();
-  const parsed = JSON.parse(outputText(raw));
-  const byIndex = new Map((parsed.explanations || []).map((item) => [item.findingIndex, item]));
+
+  // A large contract can produce many findings. Request bounded batches in
+  // parallel so structured JSON is not truncated by a single output limit.
+  const batchResults = await Promise.allSettled(batches.map(async (batch) => {
+    const response = await fetchImpl("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model,
+        store: false,
+        reasoning: { effort: "low" },
+        max_output_tokens: options.maxOutputTokens || 3000,
+        input: [
+          {
+            role: "system",
+            content: [{
+              type: "input_text",
+              text: [
+                "You are the constrained explanation layer for AegisAI, a defensive Solidity security scanner.",
+                "The supplied findings are already verified by deterministic rules. Do not add, remove, merge, or change findings, severity, confidence, rule IDs, or evidence.",
+                "For each finding, improve only the plain-language explanation, realistic attack path, actionable remediation, and a concise reasoning summary.",
+                "The reasoning summary must explain how the cited evidence supports the existing rule in two or three sentences. It must not reveal hidden chain-of-thought.",
+                "Do not claim that the contract is safe. Do not invent code, state, dependencies, or exploitability beyond the supplied evidence.",
+                "The caution must briefly identify any material uncertainty and state that human review is required."
+              ].join(" ")
+            }]
+          },
+          {
+            role: "user",
+            content: [{
+              type: "input_text",
+              text: JSON.stringify({ task: "Explain these verified findings", findings: batch })
+            }]
+          }
+        ],
+        text: {
+          verbosity: "low",
+          format: {
+            type: "json_schema",
+            name: "aegisai_grounded_explanations",
+            strict: true,
+            schema: explanationSchema()
+          }
+        }
+      }),
+      signal: AbortSignal.timeout(options.timeoutMs || 45000)
+    });
+    if (!response.ok) {
+      const details = await response.text().catch(() => "");
+      throw new Error(`OpenAI explanation request returned ${response.status}${details ? `: ${details.slice(0, 240)}` : ""}`);
+    }
+    const raw = await response.json();
+    const text = outputText(raw);
+    if (!text) throw new Error("OpenAI explanation response contained no output text.");
+    return JSON.parse(text).explanations || [];
+  }));
+
+  const generatedItems = batchResults
+    .filter((result) => result.status === "fulfilled")
+    .flatMap((result) => result.value);
+  const batchErrors = batchResults
+    .filter((result) => result.status === "rejected")
+    .map((result) => result.reason?.message || "Unknown AI batch failure");
+  const byIndex = new Map(generatedItems.map((item) => [item.findingIndex, item]));
   let fallbackCount = 0;
   const explanations = findings.map((finding, index) => {
     const generated = byIndex.get(index);
@@ -142,7 +164,13 @@ export async function explainFindingsWithOpenAI(findings, options = {}) {
       model
     };
   });
-  return { configured: true, model, explanations, fallbackCount };
+  return {
+    configured: true,
+    model,
+    explanations,
+    fallbackCount,
+    error: batchErrors.length ? `${batchErrors.length} AI explanation batch${batchErrors.length === 1 ? "" : "es"} failed: ${batchErrors[0]}` : null
+  };
 }
 
 export async function explainFinding(finding, options = {}) {

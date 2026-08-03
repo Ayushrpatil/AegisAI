@@ -317,7 +317,12 @@ async function runScan() {
       : baseStatusCopy;
   downloadButton.disabled = false;
   htmlDownloadButton.disabled = false;
-  const diagnostics = (lastReport.compiler?.diagnostics || []).map((item) => `
+  // Compiler warnings are intentionally suppressed in the UI. They are often
+  // noisy for legacy dataset contracts and are not AegisAI security findings.
+  // Keep compiler errors visible because they can invalidate scan results.
+  const diagnostics = (lastReport.compiler?.diagnostics || [])
+    .filter((item) => item.severity === "error")
+    .map((item) => `
     <article class="compiler-diagnostic ${item.severity}">
       <span>${escapeHtml(item.severity)}</span>
       <div><h3>Solidity compiler</h3><p>${escapeHtml(item.formattedMessage || item.message)}</p></div>
